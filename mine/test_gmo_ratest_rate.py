@@ -3,7 +3,7 @@ import websocket
 import ratest_rate
 from datetime import datetime, timedelta
 
-file_path = 'sqlite:///I:/マイドライブ/pytest/virtual_currency/gmo/gmo_data/ratest_rate/ratest_rate.db'
+# file_path = 'sqlite:///I:/マイドライブ/pytest/virtual_currency/gmo/gmo_data/ratest_rate/ratest_rate.db'
 
 websocket.enableTrace(True)
 ws = websocket.WebSocketApp('wss://api.coin.z.com/ws/public/v1')
@@ -17,7 +17,7 @@ def on_open(self):
     }
     ws.send(json.dumps(message))
 
-def on_message(self, message):
+def on_message(self, message, file_path):
     print("==================")
     content = json.loads(message)
     timestamp_str = content['timestamp']
@@ -29,9 +29,12 @@ def on_message(self, message):
     print(file_path)
     ratest_rate.RatestRate_Save2SQL(content, file_path)
 
+ws.on_open = on_open
+ws.on_message = on_message
+
+ws.run_forever()
+
 def run_ws(path):
-    global file_path
-    file_path = path
     ws.on_open = on_open
     ws.on_message = on_message
 
