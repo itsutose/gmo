@@ -1,4 +1,5 @@
 import datetime
+import os
 from sqlalchemy import Column
 from sqlalchemy import DateTime
 from sqlalchemy.types import Float
@@ -25,7 +26,7 @@ class TradingHistTable(Base):
     # print("====================")
     # print("test_sql TradingHistTable()")
     for key, column in TRADING_HISTORY_COLUMNS.items():
-        print(key,column)
+        # print(key,column)
         locals()[key] = column
 
 
@@ -47,7 +48,7 @@ def TradingHist_Save2SQL(content, file_path):
     print("test_sql TradingHist_Save2SQL()")
     # 設定ファイルに従ってデータを登録
     for key, value in content.items():
-        print(key,value)
+        # print(key,value)
         # if REGISTERED_DATA.get(key, False):
         setattr(trading_history_table, key, value)
  
@@ -59,7 +60,19 @@ def TradingHist_Save2SQL(content, file_path):
     session.commit()
     print('save to ',file_path)
     print('DBに保存しました。')
-    execute_test_take_from_db(file_path)
+    # execute_test_take_from_db(file_path)
+
+def getDriveLetter():
+    current_path = os.path.abspath(__file__)
+    return os.path.splitdrive(current_path)[0].upper()
+
 
 def execute_test_take_from_db(file_path):
-    pass
+    # est_take_from_db.pyのパス
+    test_take_from_db_path = f"{getDriveLetter()}/マイドライブ/pytest/virtual_currency/gmo/mine/test_take_from_db.py"
+    # 引数として渡すデータベースパス
+    # database_path = r'I:/マイドライブ/pytest/virtual_currency/gmo/gmo_data/ratest_rate/2023-06-18_ratest_rate.db'
+
+    # test_take_from_db.pyを実行
+    subprocess.run(["python", test_take_from_db_path, file_path])
+    # pass

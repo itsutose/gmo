@@ -5,9 +5,12 @@ from datetime import datetime, timedelta
 import threading
 import signal
 import sys
+import os
 
-def start_websocket(file_path):
+def start_websocket(drive_letter):
 
+    # print(drive_letter)
+    
     def on_open(self):
         message = {
             "command": "subscribe",
@@ -17,16 +20,30 @@ def start_websocket(file_path):
         ws.send(json.dumps(message))
 
     def on_message(self, message):
+
         print("==================  ratest rate ===")
+        
+        # 日にちを取得
+        date = datetime.now().strftime("%Y-%m-%d")
+
+        # 累計用
+        ratest_rate_path = f'sqlite:////workspace/gmo_data/ratest_rate/ratest_rate.db'
+        # 日にち用
+        ratest_rate_date_path = f'sqlite:////workspace/gmo_data/ratest_rate/'+date+'_ratest_rate.db'
+        ratest_rate_date_path = f'sqlite:///C:/Users/yamaguchi/MyDocument/gmo_data/ratest_rate/'+date+'_ratest_rate.db'
+
+        file_path = ratest_rate_date_path
+        
         content = json.loads(message)
-        print(content)
+        # print(content)
         timestamp_str = content['timestamp']
         timestamp = datetime.fromisoformat(timestamp_str[:-1])
         new_timestamp = timestamp + timedelta(hours=9)
         content['timestamp'] = new_timestamp
 
-
-        print(file_path)
+        print(content)
+        # print(file_path)
+    
         ratest_rate.RatestRate_Save2SQL(content, file_path)
 
     def on_close(ws):
@@ -52,16 +69,14 @@ def handle_signal(signal, frame):
     ws.close()
     sys.exit(0)
 
+
 if __name__ == '__main__':
-    # 日にちを取得
-    date = datetime.now().strftime("%Y-%m-%d")
+    
+    # googleドライブが A‐Zドライブの頭文字を取得
+    current_path = os.path.abspath(__file__)
+    drive_letter = os.path.splitdrive(current_path)[0]
 
-    # 累計用
-    ratest_rate_path = 'sqlite:///I:/マイドライブ/pytest/virtual_currency/gmo/gmo_data/ratest_rate/ratest_rate.db'
-    # 日にち用
-    ratest_rate_date_path = 'sqlite:///I:/マイドライブ/pytest/virtual_currency/gmo/gmo_data/ratest_rate/'+date+'_ratest_rate.db'
-
-    ws, ws_thread = start_websocket(ratest_rate_date_path)
+    ws, ws_thread = start_websocket(drive_letter)
 
     # Ctrl+Cシグナルをハンドルする
     signal.signal(signal.SIGINT, handle_signal)
@@ -70,3 +85,4 @@ if __name__ == '__main__':
     while True:
         # メインスレッドをブロックしないために無限ループで待機
         pass
+

@@ -25,4 +25,3 @@ TRADING_HISTORY_COLUMNS = {
     'symbol': Column(String(64))  # 銘柄名
 }
 
-

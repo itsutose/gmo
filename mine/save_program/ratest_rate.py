@@ -1,4 +1,6 @@
 import datetime
+import subprocess
+import os
 from sqlalchemy import Column
 from sqlalchemy import DateTime
 from sqlalchemy.types import Float
@@ -11,6 +13,23 @@ from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
+# config.py
+from sqlalchemy import Column, String, Integer, Float, Date
+
+RATEST_RATE_COLUMNS = {
+    "id" : Column(Integer, primary_key=True, autoincrement=True), # 主キー
+    "timestamp" :Column(String(64)),  # 時刻 
+    "channel" : Column(String(64)),  # ticker
+    'ask': Column(Integer), # 現在の売注文の最良気配値
+    'bid': Column(Integer), # 現在の買注文の最良気配値
+    'high': Column(Integer),  # 当日の最高値(最終取引価格)
+    'last': Column(Integer),  # 最終取引価格
+    'low': Column(Integer),  # 当日の最安値(最終取引価格)
+    'symbol': Column(String(64)),  # 銘柄名
+    'volume': Column(Float)  # 24時間の取引量
+
+}
+
 
 # 最初にやるやつらしい．よくわからん．
 Base = declarative_base()
@@ -21,9 +40,19 @@ class RatestRateTable(Base):
     # print("====================")
     # print("test_sql RatestRateTable()")
     for key, column in RATEST_RATE_COLUMNS.items():
-        print(key,column)
+        # print(key,column)
         locals()[key] = column
+        # setattr(self, key, column)
 
+# # カラム定義を辞書に追加
+# class_attrs = {key: column for key, column in RATEST_RATE_COLUMNS.items()}
+# class_attrs['__tablename__'] = 'ratest_rate'
+
+# # 動的にクラスを生成
+# RatestRateTable = type('RatestRateTable', (Base,), class_attrs)
+
+
+'''
 # 説明用
 # class RatestRateTable(Base):
 #     __tablename__ = 'ratest_rate'
@@ -38,6 +67,9 @@ class RatestRateTable(Base):
 #     low = Column(Integer)  # low: 当日の最安値(最終取引価格)、整数型 (Integer)
 #     symbol = Column(String(64))  # symbol: 銘柄名、文字列型 (String(64))
 #     volume = Column(Float)  # volume: 24時間の取引量、浮動小数点型 (Float)
+'''
+
+
 
 #### SqliteデーターベースにPUSH配信されたデーターを格納する ####
 def RatestRate_Save2SQL(content, file_path):
@@ -69,7 +101,33 @@ def RatestRate_Save2SQL(content, file_path):
     session.commit()
     print('save to ',file_path)
     print('DBに保存しました。')
+    # execute_test_take_from_db(file_path)
 
+def getDriveLetter():
+    current_path = os.path.abspath(__file__)
+    return os.path.splitdrive(current_path)[0].upper()
 
-# if __name__ == '__main__':
-#     RatestRate_Save2SQL()
+def execute_test_take_from_db(file_path):
+    test_take_from_db_path = f"{getDriveLetter()}/マイドライブ/pytest/virtual_currency/gmo/mine/test_take_from_db.py"
+    
+    # test_take_from_db.pyを実行
+    subprocess.run(["python", test_take_from_db_path])
+    
+    
+if __name__ == '__main__':
+    # 日にちを取得
+    date = datetime.datetime.now().strftime("%Y-%m-%d")
+
+    drive_letter = getDriveLetter()
+
+    # 累計用
+    ratest_rate_path = f'sqlite:///{getDriveLetter()}/マイドライブ/pytest/virtual_currency/gmo/gmo_data/ratest_rate/ratest_rate.db'
+    # 日にち用
+    ratest_rate_date_path = f'sqlite:///{getDriveLetter()}/マイドライブ/pytest/virtual_currency/gmo/gmo_data/ratest_rate/'+date+'_ratest_rate.db'
+    
+    content = {'channel': 'ticker', 'ask': '4179187', 'bid': '4177779', 'high': '4193000', 'last': '4179187', 'low': '4166834', 'symbol': 'BTC', 'timestamp': datetime.datetime(2023, 8, 4, 15, 4, 15, 516000), 'volume': '86.6484'}
+    
+    print(ratest_rate_date_path)
+    # ratest_rate_date_path = "sqlite:///J:/マイドライブ/pytest/virtual_currency/gmo/gmo_data/ratest_rate/2023-08-04-ratest_rate.db"
+    
+    RatestRate_Save2SQL(content, ratest_rate_date_path)

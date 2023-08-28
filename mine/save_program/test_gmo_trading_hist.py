@@ -5,8 +5,11 @@ from datetime import datetime, timedelta
 import threading
 import signal
 import sys
+import os
 
-def start_websocket(file_path):
+def start_websocket(drive_letter):
+
+
     def on_open(ws):
         message = {
             "command": "subscribe",
@@ -18,6 +21,18 @@ def start_websocket(file_path):
     id_num = [1]  # mutable object
 
     def on_message(ws, message):
+
+        # 日にちを取得
+        date = datetime.now().strftime("%Y-%m-%d")
+
+        # 累計用
+        trading_hist_path = f'sqlite:////workspace/gmo_data/trading_hist/trading_hist.db'
+        # 日にち用
+        trading_hist_date_path = f'sqlite:////workspace/gmo_data/trading_hist/'+date+'_trading_hist.db'
+        trading_hist_date_path = f'sqlite:///C:/Users/yamaguchi/MyDocument/gmo_data/trading_hist/'+date+'_trading_hist.db'
+
+        file_path = trading_hist_date_path
+
         if id_num[0] % 2 != 0:
             print("===============  trading history ===")
             content = json.loads(message)
@@ -54,15 +69,13 @@ def handle_signal(signal, frame):
     sys.exit(0)
 
 if __name__ == '__main__':
-    # 日にちを取得
-    date = datetime.now().strftime("%Y-%m-%d")
 
-    # 累計用
-    trading_hist_path = 'sqlite:///I:/マイドライブ/pytest/virtual_currency/gmo/gmo_data/trading_hist/trading_hist.db'
-    # 日にち用
-    trading_hist_date_path = 'sqlite:///I:/マイドライブ/pytest/virtual_currency/gmo/gmo_data/trading_hist/'+date+'_trading_hist.db'
+    current_path = os.path.abspath(__file__)
+    drive_letter = os.path.splitdrive(current_path)[0]
 
-    ws, ws_thread = start_websocket(trading_hist_date_path)
+    
+
+    ws, ws_thread = start_websocket(drive_letter)
 
     # Ctrl+Cシグナルをハンドルする
     signal.signal(signal.SIGINT, handle_signal)
