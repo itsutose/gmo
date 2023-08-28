@@ -10,6 +10,9 @@ import os
 
 
 Base = declarative_base()
+engine = create_engine(f'sqlite:///C:/Users/yamaguchi/MyDocument/gmo_data/board_websocket/2023-08-28/2023-08-28-14_board_info.db')
+Base.metadata.create_all(engine)
+Session = sessionmaker(bind=engine)
 
 
 class BoardData(Base):
@@ -46,46 +49,91 @@ class Bid(Base):
 
 
 
-def save_to_database(content, file_path):
+def save_to_database(content_list, file_path):
 
+    # if engine == None:
+    #     engine = create_engine(f'sqlite:///{file_path}')
+    #     Base.metadata.create_all(engine)
+    #     Session = sessionmaker(bind=engine)
 
-    engine = create_engine(f'sqlite:///{file_path}')
-    Base.metadata.create_all(engine)
-
-    if type(content) != dict:
-        content = json.loads(content)
-
-    asks = content['asks']
-    bids = content['bids']
-    grouping = content['grouping']
-    symbol = content['symbol']
-
-
-    timestamp = content['timestamp']
-    # print(type(timestamp))
-    if type(timestamp) != datetime:
-        timestamp = datetime.fromisoformat(timestamp[:-1])
-    # new_timestamp = timestamp + timedelta(hours=9)
-    content['timestamp'] = timestamp
-
-
-    Session = sessionmaker(bind=engine)
-    session = Session()
     
-    board = BoardData(grouping=grouping, symbol=symbol, responsetime=timestamp)
-    session.add(board)
-    session.commit()  # Commit to get the board_id
-    
-    for ask in asks:
-        new_ask = Ask(price=float(ask['price']), size=float(ask['size']), board_data_responsetime=board.responsetime)
-        session.add(new_ask)
+    # session = Session()
+
+    # for content in content_list:
+    #     if type(content) != dict:
+    #         content = json.loads(content)
+
+    #     asks = content['asks']
+    #     bids = content['bids']
+    #     grouping = content['grouping']
+    #     symbol = content['symbol']
+
+
+    #     timestamp = content['timestamp']
+    #     # print(type(timestamp))
+    #     if type(timestamp) != datetime:
+    #         timestamp = datetime.fromisoformat(timestamp[:-1])
+    #         # new_timestamp = timestamp + timedelta(hours=9)    
+    #         # content['timestamp'] = timestamp
+
         
-    for bid in bids:
-        new_bid = Bid(price=float(bid['price']), size=float(bid['size']), board_data_responsetime=board.responsetime)
-        session.add(new_bid)
+    #     board = BoardData(grouping=grouping, symbol=symbol, responsetime=timestamp)
+    #     session.add(board)
+    #     # session.commit()  # Commit to get the board_id
+        
+
+    #     for ask in asks:
+    #         new_ask = Ask(price=float(ask['price']), size=float(ask['size']), board_data_responsetime=board.responsetime)
+    #         session.add(new_ask)
+            
+    #     for bid in bids:
+    #         new_bid = Bid(price=float(bid['price']), size=float(bid['size']), board_data_responsetime=board.responsetime)
+    #         session.add(new_bid)
+        
+    # session.commit()
+    # session.close()
+
+    session = Session()
+
+    board_data_list = []
+    ask_list = []
+    bid_list = []
+
+    for content in content_list:
+
+        if type(content) != dict:
+            content = json.loads(content)
+
+        asks = content['asks']
+        bids = content['bids']
+        grouping = content['grouping']
+        symbol = content['symbol']
+        timestamp = content['timestamp']
+        if type(timestamp) != datetime:
+            timestamp = datetime.fromisoformat(timestamp[:-1])
+
+        # Your existing logic to populate board, ask, and bid objects
+        board = BoardData(grouping=grouping, symbol=symbol, responsetime=timestamp)
+        board_data_list.append(board)
+        
+        for ask in asks:
+            new_ask = Ask(price=float(ask['price']), size=float(ask['size']), board_data_responsetime=board.responsetime)
+            ask_list.append(new_ask)
+            
+        for bid in bids:
+            new_bid = Bid(price=float(bid['price']), size=float(bid['size']), board_data_responsetime=board.responsetime)
+            bid_list.append(new_bid)
+
+    # Bulk insert
+    session.bulk_save_objects(board_data_list)
+    session.bulk_save_objects(ask_list)
+    session.bulk_save_objects(bid_list)
     
     session.commit()
     session.close()
+
+# def session_close()
+    
 
 def getDriveLetter():
     current_path = os.path.abspath(__file__)

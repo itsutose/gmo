@@ -9,11 +9,6 @@ import sys
 import os
 from board_info import save_to_database
 
-# base_path = 'C:/Users/yamaguchi/MyDocument/gmo_data/board_websocket'
-# jst = pytz.timezone('Asia/Tokyo')
-# datetime_now = datetime.now(jst)
-
-# yesterday = datetime_now.strftime("%Y-%m-%d")
 
 class start_websocket:
     def __init__(self, base_path = 'C:/Users/yamaguchi/MyDocument/gmo_data/board_websocket', drive_letter = None):
@@ -54,9 +49,6 @@ class start_websocket:
         self.yesterday = date
         hour = datetime_now.hour
         
-
-        # # 累計用
-        # board_info_path = f'sqlite:////workspace/gmo_data/board_info/board_info.db'
         # # 日にち用
         # board_info_date_path = f'sqlite:////workspace/gmo_data/board_info/'+date+'_board_info.db'
         board_info_date_path = f'{self.base_path}/{date}/{date}-{hour}_board_info.db'
@@ -72,14 +64,14 @@ class start_websocket:
         new_timestamp = timestamp + timedelta(hours=9)
         content['timestamp'] = new_timestamp
 
-        # print(content)
-        # print(file_path)
-
-    
-        save_to_database(content, file_path)
+        self.content_list.append(content)
+        if len(self.content_list) >= 100:
+            save_to_database(self.content_list, file_path)
+            print('save 20 items ')
+            self.content_list = []
         print(f'{content["timestamp"]}')
     
-    def on_close(self):
+    def on_close(self, ws):
         print("WebSocket connection closed : websocket board info")
 
 
@@ -107,8 +99,6 @@ class start_websocket:
         if self.ws is None or self.thread is None:
             raise Exception("WebSocket and thread are not initialized. Call set_ws() first.")
         return self.ws, self.thread
-
-
 
 if __name__ == '__main__':
 
