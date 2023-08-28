@@ -15,23 +15,25 @@ from board_info import save_to_database
 
 # yesterday = datetime_now.strftime("%Y-%m-%d")
 
-def start_websocket(drive_letter):
+class start_websocket:
+    def __init__(self, base_path = 'C:/Users/yamaguchi/MyDocument/gmo_data/board_websocket', drive_letter = None):
+        self.ws = None
+        self.thread = None
+        self.base_path = base_path
+        self.datetime_now = datetime.now(pytz.timezone('Asia/Tokyo'))
+        self.yesterday = self.datetime_now.strftime("%Y-%m-%d")
+        # self.hour = self.datetime_now.hour
+        self.content_list = []
 
-    base_path = 'C:/Users/yamaguchi/MyDocument/gmo_data/board_websocket'
-    jst = pytz.timezone('Asia/Tokyo')
-    datetime_now = datetime.now(jst)
-
-    yesterday = datetime_now.strftime("%Y-%m-%d")
-
-    def on_open(self):
+    def on_open(self, ws):
         message = {
             "command": "subscribe",
             "channel": "orderbooks",
             "symbol": "BTC"
         }
-        ws.send(json.dumps(message))
+        self.ws.send(json.dumps(message))
 
-    def on_message(self, message):
+    def on_message(self, ws, message):
         # pprint(json.loads(message))
 
         print("==================  board websocket ===")
@@ -41,25 +43,25 @@ def start_websocket(drive_letter):
         datetime_now = datetime.now(jst)
 
         date = datetime_now.strftime("%Y-%m-%d")
-        if date != yesterday:
+        if date != self.yesterday:
             # if datetime_now 
-            directory_path = os.path.join(base_path, str(date))
+            directory_path = os.path.join(self.base_path, str(date))
 
             # ディレクトリが存在しない場合、ディレクトリを生成
             if not os.path.exists(directory_path):
                 os.makedirs(directory_path)
 
-        yesterday = date
+        self.yesterday = date
         hour = datetime_now.hour
-        minute = datetime_now.minute
-        sec = datetime_now.second
+        
 
+        # # 累計用
+        # board_info_path = f'sqlite:////workspace/gmo_data/board_info/board_info.db'
+        # # 日にち用
+        # board_info_date_path = f'sqlite:////workspace/gmo_data/board_info/'+date+'_board_info.db'
+        board_info_date_path = f'{self.base_path}/{date}/{date}-{hour}_board_info.db'
 
-        # 累計用
-        board_info_path = f'sqlite:////workspace/gmo_data/board_info/board_info.db'
-        # 日にち用
-        board_info_date_path = f'sqlite:////workspace/gmo_data/board_info/'+date+'_board_info.db'
-        board_info_date_path = f'sqlite:///{base_path}/{date}/{date}-{hour}_board_info.db'
+        # print(board_info_date_path)
 
         file_path = board_info_date_path
         
@@ -67,57 +69,63 @@ def start_websocket(drive_letter):
         # print(content)
         timestamp_str = content['timestamp']
         timestamp = datetime.fromisoformat(timestamp_str[:-1])
-        new_timestamp = timestamp + datetime.timedelta(hours=9)
+        new_timestamp = timestamp + timedelta(hours=9)
         content['timestamp'] = new_timestamp
 
         # print(content)
         # print(file_path)
+
     
         save_to_database(content, file_path)
         print(f'{content["timestamp"]}')
-
-    # ws.on_open = on_open
-    # ws.on_message = on_message
-
-    # ws.run_forever()
     
-    def on_close(ws):
+    def on_close(self):
         print("WebSocket connection closed : websocket board info")
 
 
-    websocket.enableTrace(True)
-    ws = websocket.WebSocketApp('wss://api.coin.z.com/ws/public/v1',
-                                on_open = on_open,
-                                on_message = on_message,
-                                on_close=on_close
-                                )
+    def set_ws(self):
+        websocket.enableTrace(True)
+        self.ws = websocket.WebSocketApp('wss://api.coin.z.com/ws/public/v1',
+                                on_open = lambda ws: self.on_open(ws),
+                                on_message = lambda ws, msg: self.on_message(ws, msg),
+                                on_close = lambda ws: self.on_close(ws)
+                                    )
+        self.thread = threading.Thread(target=self.ws.run_forever)
+        self.thread.start()
+
+    def run_websocket(self):
+        self.ws.run_forever()
 
 
-    def run_websocket():
-        ws.run_forever()
+    def handle_signal(self, signal, frame):
+        print("Interrupt received, closing WebSocket connection...")
+        self.ws.close()
+        sys.exit(0)
 
-    thread = threading.Thread(target=ws.run_forever)
-    thread.start()
+    def get_ws_thread(self):
 
-    return ws, thread
+        if self.ws is None or self.thread is None:
+            raise Exception("WebSocket and thread are not initialized. Call set_ws() first.")
+        return self.ws, self.thread
 
-def handle_signal(signal, frame):
-    print("Interrupt received, closing WebSocket connection...")
-    ws.close()
-    sys.exit(0)
 
 
 if __name__ == '__main__':
+
+    base_path = 'C:/Users/yamaguchi/MyDocument/gmo_data/board_websocket'
 
     # googleドライブが A‐Zドライブの頭文字を取得
     current_path = os.path.abspath(__file__)
     drive_letter = os.path.splitdrive(current_path)[0]
 
-    ws, ws_thread = start_websocket(drive_letter)
+    # ws, ws_thread = start_websocket(drive_letter)
+    sws = start_websocket(base_path, drive_letter)
+    sws.set_ws()
+    ws, ws_thread = sws.get_ws_thread()
 
     # Ctrl+Cシグナルをハンドルする
-    signal.signal(signal.SIGINT, handle_signal)
-    signal.signal(signal.SIGTERM, handle_signal)
+    signal.signal(signal.SIGINT, sws.handle_signal)
+    signal.signal(signal.SIGTERM, sws.handle_signal)
 
     while True:
         # メインスレッドをブロックしないために無限ループで待機

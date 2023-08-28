@@ -49,25 +49,6 @@ class Bid(Base):
 def save_to_database(content, file_path):
 
 
-    # 日にちを取得
-    
-    # jst = pytz.timezone('Asia/Tokyo')
-    # datetime_now = datetime.now(jst)
-
-    # date = datetime_now.strftime("%Y-%m-%d")
-    # if date != yesterday:
-    #     # if datetime_now 
-    #     directory_path = os.path.join(base_path, str(date))
-
-    #     # ディレクトリが存在しない場合、ディレクトリを生成
-    #     if not os.path.exists(directory_path):
-    #         os.makedirs(directory_path)
-
-    # yesterday = date
-    # hour = datetime_now.hour
-    # minute = datetime_now.minute
-    # sec = datetime_now.second
-
     engine = create_engine(f'sqlite:///{file_path}')
     Base.metadata.create_all(engine)
 
@@ -80,10 +61,12 @@ def save_to_database(content, file_path):
     symbol = content['symbol']
 
 
-    timestamp_str = content['timestamp']
-    timestamp = datetime.fromisoformat(timestamp_str[:-1])
-    new_timestamp = timestamp + timedelta(hours=9)
-    content['timestamp'] = new_timestamp
+    timestamp = content['timestamp']
+    # print(type(timestamp))
+    if type(timestamp) != datetime:
+        timestamp = datetime.fromisoformat(timestamp[:-1])
+    # new_timestamp = timestamp + timedelta(hours=9)
+    content['timestamp'] = timestamp
 
 
     Session = sessionmaker(bind=engine)
