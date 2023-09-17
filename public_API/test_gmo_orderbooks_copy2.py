@@ -41,8 +41,6 @@ class Bid(Base):
     
     board_data = relationship("BoardData", back_populates="bids")
 
-
-
 def save_to_database(board_data, board_status, board_responsetime):
     Session = sessionmaker(bind=engine)
     session = Session()
@@ -63,14 +61,16 @@ def save_to_database(board_data, board_status, board_responsetime):
     session.close()
 
 from board_data_model import model
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time as dtime
 import time
 import pytz
 
 if __name__ == '__main__':
 
-    base_path = "C:/Users/yamaguchi/MyDocument/gmo_data/board"
+    base_path = "C:/Users/yamaguchi/MyDocument/gmo_data/board_test"
     yesterday = None
+    error_count = 0
+    error_type = ['ConnectionError', "Timeout", "RequestException", "Exception", "JSONDecodeError"]
 
     while True:
 
@@ -96,7 +96,7 @@ if __name__ == '__main__':
         minute = datetime_now.minute
         sec = datetime_now.second
 
-        if sec % 0 == 0:
+        if sec % 10 == 0:
             print(datetime_now)
 
         # Create an SQLite database and add the data into it
@@ -106,21 +106,43 @@ if __name__ == '__main__':
 
         board_status,b,c = orderbooks()
         
-        if board_status == -1:
-            time.sleep(30)
+        # for exception perturns
+        # 今のところは時間を置いて再度実行すると直ると予想，修正がいるかも
+        if board_status in error_type:
+            time.sleep(3)
+            error_count += 1
+            if error_count >= 5:
+                error_count = 0
+                time.sleep(15)
             continue
 
+        # for mentainance am 9 ~ am 11 in saturday
         if board_status == 5:
-            # その日の11時のdatetimeオブジェクトを作成
             datetime_11am = datetime_now.replace(hour=11, minute=0, second=0, microsecond=0)
 
-            # 現在の時間が11時より前である場合
+            if datetime_now.strftime('%Y-%m-%d') == '2023-09-02':
+                datetime_11am = datetime_now.replace(hour=16, minute=0, second=0, microsecond=0)
+
             if datetime_now < datetime_11am:
                 # 11時までの待機時間を計算
                 sleep_seconds = (datetime_11am - datetime_now).total_seconds()
+
+                # 時間、分、秒に変換
+                hours = int(sleep_seconds // 3600)
+                minutes = int((sleep_seconds % 3600) // 60)
+                seconds = int(sleep_seconds % 60)
+
+                # print(f'now : {datetime.now(jst)}, sleep_seconds : {sleep_seconds}')
+                print(f'now: {datetime.now(jst)}, sleep_seconds: {sleep_seconds}')
+                print(f'Time to sleep: {hours} : {minutes} : {seconds}')
+                
                 # その時間だけプログラムを一時停止
                 time.sleep(sleep_seconds)
                 continue    
+
+        # おそらく通ることはないと思うが一応
+        if c == 'MAINTENANCE. Please wait for a while':
+            continue
 
         c = datetime.fromisoformat(c.replace("Z", ""))
         jst_c = c + timedelta(hours = 9)
