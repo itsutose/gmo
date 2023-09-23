@@ -65,6 +65,12 @@ from datetime import datetime, timedelta, time as dtime
 import time
 import pytz
 
+
+def write_log(log_path, error_message):
+    with open(f"{log_path}/error_log.txt", "a") as f:
+        f.write(f"{error_message}\n")
+
+
 if __name__ == '__main__':
 
     base_path = "C:/Users/yamaguchi/MyDocument/gmo_data/board"
@@ -73,6 +79,21 @@ if __name__ == '__main__':
     sleep_time = 5
     error_type = ['ConnectionError', "Timeout", "RequestException", "Exception", "JSONDecodeError"]
 
+    # プログラムの開始時間を記録
+    jst = pytz.timezone('Asia/Tokyo')
+    datetime_now = datetime.now(jst)
+    date = datetime_now.strftime("%Y-%m-%d")
+
+    directory_path = os.path.join(base_path, str(date))
+
+    # ディレクトリが存在しない場合、ディレクトリを生成
+    if not os.path.exists(directory_path):
+        os.makedirs(directory_path)
+
+    write_log(directory_path, "============================================")
+    write_log(directory_path, f"Program started at {datetime_now}")
+        
+    
     while True:
 
         # googleドライブが A‐Zドライブの頭文字を取得
@@ -92,6 +113,8 @@ if __name__ == '__main__':
             if not os.path.exists(directory_path):
                 os.makedirs(directory_path)
 
+
+
         yesterday = date
         hour = datetime_now.hour
         minute = datetime_now.minute
@@ -107,19 +130,22 @@ if __name__ == '__main__':
 
         board_status,b,c = orderbooks()
 
-        
+
         
         # for exception perturns
         # 今のところは時間を置いて再度実行すると直ると予想，修正がいるかも
         if board_status in error_type:
             time.sleep(sleep_time)
             sleep_time +=5
+            write_log(directory_path, b)
+            print("======================= error message =========================")
+            print("error type : ", board_status)
+            print(b)
             continue
-        else:
-            sleep_time = 5
 
         # for mentainance am 9 ~ am 11 in saturday
-        if board_status == 5:
+        elif board_status == 5:
+            sleep_time = 5
             datetime_11am = datetime_now.replace(hour=11, minute=0, second=0, microsecond=0)
 
             if datetime_now.strftime('%Y-%m-%d') == '2023-09-02':
@@ -140,19 +166,31 @@ if __name__ == '__main__':
                 
                 # その時間だけプログラムを一時停止
                 time.sleep(sleep_seconds)
-                continue    
+                continue
 
-        # おそらく通ることはないと思うが一応
-        if c == 'MAINTENANCE. Please wait for a while':
-            continue
+        elif board_status == 0:
 
-        c = datetime.fromisoformat(c.replace("Z", ""))
-        jst_c = c + timedelta(hours = 9)
 
-        save_to_database(b,board_status,jst_c)
+            # おそらく通ることはないと思うが一応
+            if c == 'MAINTENANCE. Please wait for a while':
+                continue
 
-        # 10秒待つ
-        time.sleep(1)
+            c = datetime.fromisoformat(c.replace("Z", ""))
+            jst_c = c + timedelta(hours = 9)
+
+            save_to_database(b,board_status,jst_c)
+
+            # 10秒待つ
+            time.sleep(1)
+        
+        else:
+            write_log(directory_path, b)
+            print("======================= unknown error message =========================")
+            print("unknown error type : ", board_status)
+            print(b)
+            time.sleep(sleep_time)
+            sleep_time +=5
+
 
         # https://chat.openai.com/c/db64838f-baa7-4b3e-bd0a-69c16a6e6323
 

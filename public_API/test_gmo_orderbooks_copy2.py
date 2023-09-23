@@ -68,8 +68,10 @@ import pytz
 if __name__ == '__main__':
 
     base_path = "C:/Users/yamaguchi/MyDocument/gmo_data/board_test"
+    base_path = "C:/Users/yamaguchi/MyDocument/gmo_data/board"
     yesterday = None
     error_count = 0
+    unknown_error_count = 0
     error_type = ['ConnectionError', "Timeout", "RequestException", "Exception", "JSONDecodeError"]
 
     while True:
@@ -142,6 +144,14 @@ if __name__ == '__main__':
 
         # おそらく通ることはないと思うが一応
         if c == 'MAINTENANCE. Please wait for a while':
+            continue
+        
+        if c == "unknown error":
+            time.sleep(3)
+            unknown_error_count += 1
+            if unknown_error_count >= 5:
+                unknown_error_count = 0
+                time.sleep(15)
             continue
 
         c = datetime.fromisoformat(c.replace("Z", ""))

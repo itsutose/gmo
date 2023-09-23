@@ -31,7 +31,7 @@ class start_websocket:
     def on_message(self, ws, message):
         # pprint(json.loads(message))
 
-        print("==================  board websocket ===")
+        # print("==================  board websocket ===")
         
         # 日にちを取得
         jst = pytz.timezone('Asia/Tokyo')
@@ -53,23 +53,33 @@ class start_websocket:
         # board_info_date_path = f'sqlite:////workspace/gmo_data/board_info/'+date+'_board_info.db'
         board_info_date_path = f'{self.base_path}/{date}/{date}-{hour}_board_info.db'
 
-        # print(board_info_date_path)
-
         file_path = board_info_date_path
         
         content = json.loads(message)
-        # print(content)
         timestamp_str = content['timestamp']
         timestamp = datetime.fromisoformat(timestamp_str[:-1])
         new_timestamp = timestamp + timedelta(hours=9)
         content['timestamp'] = new_timestamp
 
         self.content_list.append(content)
-        if len(self.content_list) >= 100:
-            save_to_database(self.content_list, file_path)
-            print('save 20 items ')
+        # if len(self.content_list) >= 100:
+        #     save_to_database(self.content_list, file_path)
+        #     print('save 20 items ')
+        #     self.content_list = []
+
+        if len(self.content_list) >= 50:
+            print(f'save start  {datetime.now(pytz.timezone("Asia/Tokyo"))}')
+            # バッファの内容を別のリストに移動して、バッファをクリアする
+            to_save_list = self.content_list.copy()
             self.content_list = []
-        print(f'{content["timestamp"]}')
+            
+            # 新しいスレッドでsave_to_databaseを実行
+            save_thread = threading.Thread(target=save_to_database, args=(to_save_list, file_path))
+            save_thread.start()
+
+            print(f'save end  {datetime.now(pytz.timezone("Asia/Tokyo"))}')
+
+        # print(f'{content["timestamp"]}')
     
     def on_close(self, ws):
         print("WebSocket connection closed : websocket board info")
@@ -103,6 +113,7 @@ class start_websocket:
 if __name__ == '__main__':
 
     base_path = 'C:/Users/yamaguchi/MyDocument/gmo_data/board_websocket'
+    base_path = 'C:/Users/yamaguchi/MyDocument/gmo_data/trading_hist'
 
     # googleドライブが A‐Zドライブの頭文字を取得
     current_path = os.path.abspath(__file__)

@@ -10,9 +10,9 @@ import os
 
 
 Base = declarative_base()
-engine = create_engine(f'sqlite:///C:/Users/yamaguchi/MyDocument/gmo_data/board_websocket/2023-08-28/2023-08-28-14_board_info.db')
-Base.metadata.create_all(engine)
-Session = sessionmaker(bind=engine)
+# engine = create_engine(f'sqlite:///C:/Users/yamaguchi/MyDocument/gmo_data/board_websocket/2023-08-28/2023-08-28-14_board_info.db')
+# Base.metadata.create_all(engine)
+# Session = sessionmaker(bind=engine)
 
 
 class BoardData(Base):
@@ -51,56 +51,21 @@ class Bid(Base):
 
 def save_to_database(content_list, file_path):
 
-    # if engine == None:
-    #     engine = create_engine(f'sqlite:///{file_path}')
-    #     Base.metadata.create_all(engine)
-    #     Session = sessionmaker(bind=engine)
-
-    
-    # session = Session()
-
-    # for content in content_list:
-    #     if type(content) != dict:
-    #         content = json.loads(content)
-
-    #     asks = content['asks']
-    #     bids = content['bids']
-    #     grouping = content['grouping']
-    #     symbol = content['symbol']
-
-
-    #     timestamp = content['timestamp']
-    #     # print(type(timestamp))
-    #     if type(timestamp) != datetime:
-    #         timestamp = datetime.fromisoformat(timestamp[:-1])
-    #         # new_timestamp = timestamp + timedelta(hours=9)    
-    #         # content['timestamp'] = timestamp
-
-        
-    #     board = BoardData(grouping=grouping, symbol=symbol, responsetime=timestamp)
-    #     session.add(board)
-    #     # session.commit()  # Commit to get the board_id
-        
-
-    #     for ask in asks:
-    #         new_ask = Ask(price=float(ask['price']), size=float(ask['size']), board_data_responsetime=board.responsetime)
-    #         session.add(new_ask)
-            
-    #     for bid in bids:
-    #         new_bid = Bid(price=float(bid['price']), size=float(bid['size']), board_data_responsetime=board.responsetime)
-    #         session.add(new_bid)
-        
-    # session.commit()
-    # session.close()
-
+    engine = create_engine(f'sqlite:///C:/Users/yamaguchi/MyDocument/gmo_data/board_websocket/2023-08-28/2023-08-28-15_board_info.db')
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine)
     session = Session()
 
     board_data_list = []
     ask_list = []
     bid_list = []
 
-    for content in content_list:
+    print(f'board save start  {datetime.now(pytz.timezone("Asia/Tokyo"))}')
 
+    # iter = 0
+
+    for content in content_list:
+        # iter += 1
         if type(content) != dict:
             content = json.loads(content)
 
@@ -116,21 +81,28 @@ def save_to_database(content_list, file_path):
         board = BoardData(grouping=grouping, symbol=symbol, responsetime=timestamp)
         board_data_list.append(board)
         
-        for ask in asks:
+        for ask in asks: # 一つのデータ当たり30
             new_ask = Ask(price=float(ask['price']), size=float(ask['size']), board_data_responsetime=board.responsetime)
             ask_list.append(new_ask)
             
-        for bid in bids:
+        for bid in bids: # 一つのデータ当たり30
             new_bid = Bid(price=float(bid['price']), size=float(bid['size']), board_data_responsetime=board.responsetime)
             bid_list.append(new_bid)
+
+        # if iter % 10 == 0:
+            # print(f'save number {iter}')
 
     # Bulk insert
     session.bulk_save_objects(board_data_list)
     session.bulk_save_objects(ask_list)
     session.bulk_save_objects(bid_list)
     
+    print('bulk save end')
+
     session.commit()
     session.close()
+
+    print(f'board save end  {datetime.now(pytz.timezone("Asia/Tokyo"))}')
 
 # def session_close()
     
@@ -152,17 +124,6 @@ if __name__ == '__main__':
     datetime_now = datetime.now(jst)
 
     date = datetime_now.strftime("%Y-%m-%d")
-
-    # date = datetime_now.strftime("%Y-%m-%d")
-
-
-    # if date != yesterday:
-    #     # if datetime_now 
-    #     directory_path = os.path.join(base_path, str(date))
-
-    #     # ディレクトリが存在しない場合、ディレクトリを生成
-    #     if not os.path.exists(directory_path):
-    #         os.makedirs(directory_path)
 
     # 累計用
     board_info_path = f'{getDriveLetter()}/マイドライブ/pytest/virtual_currency/gmo/gmo_data/board_info/board_info.db'
