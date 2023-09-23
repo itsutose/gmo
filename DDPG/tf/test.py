@@ -1,16 +1,7 @@
-# 確認用
+import tensorflow as tf
 
-import gym
-
-env = gym.make('CartPole-v1', render_mode = 'human')
-
-o = env.reset()
-
-for _ in range(100):
-    o, r, d, i, _ = env.step(env.action_space.sample())
-    env.render()
-    if d:
-        env.reset()
-
-# env.close()
-# env.display()
+# GPUが利用可能か確認
+if tf.config.list_physical_devices('GPU'):
+    print("GPU is available.")
+else:
+    print("GPU is not available.")

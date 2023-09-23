@@ -9,7 +9,9 @@ from matplotlib import pyplot as plt
 from collections import deque
 import random
 
+
 # pip install gym=0.25.2 ※0.26.2だと正しく学習できない（原因はまだ）
+
 
 class ActorModel(keras.Model):
     def __init__(self, action_space):
@@ -42,6 +44,7 @@ class ActorModel(keras.Model):
     # 状態を元にactionを算出
     def sample_action(self, state, training=False):
         actions = self(state.reshape((1,-1)))
+        print(type(state))
         action = actions[0].numpy()
 
         if training:
@@ -75,7 +78,7 @@ class CriticModel(keras.Model):
         self.optimizer = Adam(lr=0.003)
 
     # Forward pass
-    def call(self, states, actions, training=False):
+    def call(self, states, actions, training=False): 
         x = tf.concat([states, actions], axis=1)
         x1 = self.dense1(x)
         x1 = self.dense2(x1)
@@ -86,6 +89,8 @@ class CriticModel(keras.Model):
         x2 = self.dense6(x2)
         q2 = self.value2(x2)
         return q1, q2
+    
+    
     
 def update_model(
         actor_model, 
@@ -167,9 +172,15 @@ def update_target_model(actor_model, target_actor_model, critic_model, target_cr
         (1 - soft_tau) * np.array(target_critic_model.get_weights(), dtype=object)
         + (soft_tau) * np.array(critic_model.get_weights(), dtype=object))
 
+
+
 print(gym.__version__)
+
+
+
 def train_main():
-    env = gym.make("Pendulum-v1", render_mode = 'human')
+    # env = gym.make("Pendulum-v1", render_mode = 'human')
+    env = gym.make("Pendulum-v1")
 
     # ハイパーパラメータ
     buffer_size = 10000  # キューの最大容量
@@ -299,6 +310,24 @@ def train_main():
             ))
     
     return actor_model, history_rewards, history_metrics, history_metrics_y
+
+
+
+import tensorflow as tf
+
+# Check if any GPUs are available
+physical_devices = tf.config.list_physical_devices('GPU')
+if len(physical_devices) == 0:
+    raise RuntimeError("No GPU devices found.")
+print(f'Num GPUs Available: {len(physical_devices)}')
+
+# Enable dynamic memory allocation on GPUs
+for device in physical_devices:
+    tf.config.experimental.set_memory_growth(device, True)
+
+# (Optional) Use only the first GPU
+tf.config.set_visible_devices(physical_devices[0], 'GPU')
+
 
 
 model, history_rewards, history_metrics, history_metrics_y = train_main()
