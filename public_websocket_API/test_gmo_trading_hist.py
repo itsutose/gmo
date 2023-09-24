@@ -71,7 +71,7 @@ def start_websocket(folder_path):
 
             print("=============================================================")
             print("WebSocket connection closed or failed, retrying...")
-            time.sleep(3)  # wait for 3 seconds before retrying
+            time.sleep(sleep_time)  # wait for 3 seconds before retrying
 
     thread = threading.Thread(target=run_websocket)
     thread.start()
@@ -86,7 +86,7 @@ def handle_signal(signal, frame):
 if __name__ == '__main__':
 
     folder_path = "C:/Users/yamaguchi/MyDocument/gmo_data/trading_hist_test"
-    folder_path = "C:/Users/yamaguchi/MyDocument/gmo_data/trading_hist"
+    # folder_path = "C:/Users/yamaguchi/MyDocument/gmo_data/trading_hist"
     # ディレクトリが存在しない場合、ディレクトリを生成
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
@@ -97,7 +97,8 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, handle_signal)
     signal.signal(signal.SIGTERM, handle_signal)
 
-    ws_thread.join()
+    # ws_thread.join()
     # while True:
     #     # メインスレッドをブロックしないために無限ループで待機
+    #     # time.sleep(1)
     #     pass
