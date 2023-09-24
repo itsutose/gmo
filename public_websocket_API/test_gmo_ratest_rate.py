@@ -86,7 +86,7 @@ def handle_signal(signal, frame):
 if __name__ == '__main__':
     
     folder_path = "C:/Users/yamaguchi/MyDocument/gmo_data/ratest_rate_test"
-    folder_path = "C:/Users/yamaguchi/MyDocument/gmo_data/ratest_rate"
+    # folder_path = "C:/Users/yamaguchi/MyDocument/gmo_data/ratest_rate"
     # ディレクトリが存在しない場合、ディレクトリを生成
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)

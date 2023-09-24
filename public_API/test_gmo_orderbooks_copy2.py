@@ -68,7 +68,7 @@ import pytz
 if __name__ == '__main__':
 
     base_path = "C:/Users/yamaguchi/MyDocument/gmo_data/board_test"
-    base_path = "C:/Users/yamaguchi/MyDocument/gmo_data/board"
+    # base_path = "C:/Users/yamaguchi/MyDocument/gmo_data/board"
     yesterday = None
     error_count = 0
     unknown_error_count = 0
